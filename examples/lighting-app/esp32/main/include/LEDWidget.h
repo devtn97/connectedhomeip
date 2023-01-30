@@ -20,6 +20,7 @@
 #include "driver/gpio.h"
 #include "esp_log.h"
 
+
 #if CONFIG_LED_TYPE_RMT
 #include "driver/rmt.h"
 #include "led_strip.h"
@@ -28,6 +29,9 @@
 #include "hal/ledc_types.h"
 #endif
 
+#include "driver/ledc.h"
+
+#define CONFIG_DQ_LED_RGB   1
 class LEDWidget
 {
 public:
@@ -59,5 +63,10 @@ private:
     gpio_num_t mGPIONum;
 #endif
 
+#if CONFIG_DQ_LED_RGB
+    gpio_num_t mGPIOR;
+    gpio_num_t mGPIOG;
+    gpio_num_t mGPIOB;
+#endif
     void DoSet(void);
 };

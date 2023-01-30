@@ -17,7 +17,7 @@
 
 #include "Button.h"
 
-#define GPIO_INPUT_IO_0 CONFIG_EXAMPLE_BOARD_BUTTON_GPIO
+#define GPIO_INPUT_IO_0 4
 
 #define GPIO_INPUT_PIN_SEL (1ULL << GPIO_INPUT_IO_0)
 #define ESP_INTR_FLAG_DEFAULT 0
@@ -30,7 +30,9 @@ static void IRAM_ATTR gpio_isr_handler(void * arg)
 {
     if (button_press_handler != nullptr)
     {
+        ESP_LOGI(TAG, "button_press_handler----------..");
         button_press_handler();
+
     }
 }
 
@@ -45,15 +47,22 @@ void Button::Init()
     io_conf.pin_bit_mask = GPIO_INPUT_PIN_SEL;
     // set as input mode
     io_conf.mode = GPIO_MODE_INPUT;
+
     // enable pull-up mode
     io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
     gpio_config(&io_conf);
 
+   // gpio_set_intr_type(static_cast<gpio_num_t>(GPIO_INPUT_IO_0), GPIO_INTR_ANYEDGE);
     // install gpio isr service
     gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
+    
     // hook isr handler for specific gpio pin
     gpio_isr_handler_add(static_cast<gpio_num_t>(GPIO_INPUT_IO_0), gpio_isr_handler, (void *) GPIO_INPUT_IO_0);
 
+    //  //remove isr handler for gpio number.
+    // gpio_isr_handler_remove(static_cast<gpio_num_t>(GPIO_INPUT_IO_0));
+    // //hook isr handler for specific gpio pin again
+    // gpio_isr_handler_add(static_cast<gpio_num_t>(GPIO_INPUT_IO_0), gpio_isr_handler, (void*) GPIO_INPUT_IO_0);
     ESP_LOGI(TAG, "Button initialized..");
 }
 
@@ -61,6 +70,7 @@ void Button::SetButtonPressCallback(ButtonPressCallback button_callback)
 {
     if (button_callback != nullptr)
     {
+        ESP_LOGI(TAG, "SetButtonPressCallback");
         button_press_handler = button_callback;
     }
 }
