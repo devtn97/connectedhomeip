@@ -27,44 +27,43 @@ RgbColor_t HsvToRgb(HsvColor_t hsv)
 {
     RgbColor_t rgb;
 
-    uint16_t i       = hsv.h / 60;
-    uint16_t rgb_max = hsv.v;
-    uint16_t rgb_min = (uint16_t)(rgb_max * (100 - hsv.s)) / 100;
-    uint16_t diff    = hsv.h % 60;
-    uint16_t rgb_adj = (uint16_t)((rgb_max - rgb_min) * diff) / 60;
-
-    switch (i)
+    unsigned char region, remainder, p, q, t;
+    
+    if (hsv.s == 0)
     {
-    case 0:
-        rgb.r = (uint8_t) rgb_max;
-        rgb.g = (uint8_t)(rgb_min + rgb_adj);
-        rgb.b = (uint8_t) rgb_min;
-        break;
-    case 1:
-        rgb.r = (uint8_t)(rgb_max - rgb_adj);
-        rgb.g = (uint8_t) rgb_max;
-        rgb.b = (uint8_t) rgb_min;
-        break;
-    case 2:
-        rgb.r = (uint8_t) rgb_min;
-        rgb.g = (uint8_t) rgb_max;
-        rgb.b = (uint8_t)(rgb_min + rgb_adj);
-        break;
-    case 3:
-        rgb.r = (uint8_t) rgb_min;
-        rgb.g = (uint8_t)(rgb_max - rgb_adj);
-        rgb.b = (uint8_t) rgb_max;
-        break;
-    case 4:
-        rgb.r = (uint8_t)(rgb_min + rgb_adj);
-        rgb.g = (uint8_t) rgb_min;
-        rgb.b = (uint8_t) rgb_max;
-        break;
-    default:
-        rgb.r = (uint8_t) rgb_max;
-        rgb.g = (uint8_t) rgb_min;
-        rgb.b = (uint8_t)(rgb_max - rgb_adj);
-        break;
+        rgb.r = hsv.v;
+        rgb.g = hsv.v;
+        rgb.b = hsv.v;
+        return rgb;
+    }
+    
+    region = hsv.h / 42.5;
+    remainder = (hsv.h - (region * 42.5)) * 6; 
+    
+    p = (hsv.v * (255 - hsv.s)) >> 8;
+    q = (hsv.v * (255 - ((hsv.s * remainder) >> 8))) >> 8;
+    t = (hsv.v * (255 - ((hsv.s * (255 - remainder)) >> 8))) >> 8;
+    
+    switch (region)
+    {
+        case 0:
+            rgb.r = hsv.v; rgb.g = t; rgb.b = p;
+            break;
+        case 1:
+            rgb.r = q; rgb.g = hsv.v; rgb.b = p;
+            break;
+        case 2:
+            rgb.r = p; rgb.g = hsv.v; rgb.b = t;
+            break;
+        case 3:
+            rgb.r = p; rgb.g = q; rgb.b = hsv.v;
+            break;
+        case 4:
+            rgb.r = t; rgb.g = p; rgb.b = hsv.v;
+            break;
+        default:
+            rgb.r = hsv.v; rgb.g = p; rgb.b = q;
+            break;
     }
 
     return rgb;

@@ -18,8 +18,9 @@
 #include "LEDWidget.h"
 #include "ColorFormat.h"
 #include "led_strip.h"
-
+#include <math.h>
 static const char * TAG = "LEDWidget";
+
 
 void LEDWidget::Init(void)
 {
@@ -67,6 +68,62 @@ void LEDWidget::Init(void)
     };
     ledc_channel_config(&ledc_channel);
 #endif // CONFIG_LED_TYPE_RMT
+
+#if CONFIG_DQ_LED_RGB
+    gpio_num_t mGPIONum                       = (gpio_num_t) 2;
+    ledc_timer_config_t ledc_timer = {
+        .speed_mode      = LEDC_LOW_SPEED_MODE, // timer mode
+        .duty_resolution = LEDC_TIMER_8_BIT,    // resolution of PWM duty
+        .timer_num       = LEDC_TIMER_1,        // timer index
+        .freq_hz         = 5000,                // frequency of PWM signal
+        .clk_cfg         = LEDC_AUTO_CLK,       // Auto select the source clock
+    };
+    ledc_timer_config(&ledc_timer);
+    ledc_channel_config_t ledc_channel = {
+        .gpio_num   = mGPIONum,
+        .speed_mode = LEDC_LOW_SPEED_MODE,
+        .channel    = LEDC_CHANNEL_0,
+        .intr_type  = LEDC_INTR_DISABLE,
+        .timer_sel  = LEDC_TIMER_1,
+        .duty       = 0,
+        .hpoint     = 0,
+    };
+    ledc_channel_config(&ledc_channel);
+    mGPIOR          = (gpio_num_t) 3;
+    mGPIOG          = (gpio_num_t) 4;
+    mGPIOB          = (gpio_num_t) 5;
+    ledc_channel_config_t channel_red = {
+        .gpio_num   = mGPIOR,
+        .speed_mode = LEDC_LOW_SPEED_MODE,
+        .channel    = LEDC_CHANNEL_1,
+        .intr_type  = LEDC_INTR_DISABLE,
+        .timer_sel  = LEDC_TIMER_1,
+        .duty       = 0,
+        .hpoint     = 0,
+	};
+	ledc_channel_config_t channel_green = {
+	    .gpio_num   = mGPIOG,
+        .speed_mode = LEDC_LOW_SPEED_MODE,
+        .channel    = LEDC_CHANNEL_2,
+        .intr_type  = LEDC_INTR_DISABLE,
+        .timer_sel  = LEDC_TIMER_1,
+        .duty       = 0,
+        .hpoint     = 0,
+	};
+	ledc_channel_config_t channel_blue = {
+		.gpio_num   = mGPIOB,
+        .speed_mode = LEDC_LOW_SPEED_MODE,
+        .channel    = LEDC_CHANNEL_3,
+        .intr_type  = LEDC_INTR_DISABLE,
+        .timer_sel  = LEDC_TIMER_1,
+        .duty       = 0,
+        .hpoint     = 0,
+	};
+	ledc_channel_config(&channel_red);
+	ledc_channel_config(&channel_green);
+	ledc_channel_config(&channel_blue);
+#endif
+
 }
 
 void LEDWidget::Set(bool state)
@@ -125,26 +182,56 @@ void LEDWidget::SetColor(uint8_t Hue, uint8_t Saturation)
 void LEDWidget::DoSet(void)
 {
     uint8_t brightness = mState ? mBrightness : 0;
+    ESP_LOGI(TAG, "DoSetxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx br %d - hue %d - satura %d",brightness,mHue, mSaturation);
+#if CONFIG_DQ_LED_RGB
+    HsvColor_t hsv = { mHue, mSaturation, brightness };
+    RgbColor_t rgb = HsvToRgb(hsv);
+    // ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, brightness);
+    // ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
+    // //int factor = (pow(2, brightness))/256;
+
+    // int factor = (pow(2, 8))/256;
+	
+	// int red_scaled = rgb.r * factor;
+	// int green_scaled = rgb.g * factor;
+	// int blue_scaled = rgb.b * factor;
+	
+	ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1, rgb.r);
+	ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1);
+	
+	ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_2, rgb.g);
+	ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_2);
+	
+	ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_3, rgb.b);
+	ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_3);
+    ESP_LOGI(TAG, "Convert %d %d %d",  rgb.r,  rgb.g, rgb.b);
+ 
+#endif
+
+
 
 #if CONFIG_LED_TYPE_RMT
-    if (mStrip)
-    {
-        HsvColor_t hsv = { mHue, mSaturation, brightness };
-        RgbColor_t rgb = HsvToRgb(hsv);
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
-        led_strip_set_pixel(mStrip, 0, rgb.r, rgb.g, rgb.b);
-        led_strip_refresh(mStrip);
-#else
-        mStrip->set_pixel(mStrip, 0, rgb.r, rgb.g, rgb.b);
-        mStrip->refresh(mStrip, 100);
-#endif
-    }
-#else
-    ESP_LOGI(TAG, "DoSet to GPIO number %d", mGPIONum);
-    if (mGPIONum < GPIO_NUM_MAX)
-    {
-        ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, brightness);
-        ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
-    }
+//     if (mStrip)
+//     {
+//         HsvColor_t hsv = { mHue, mSaturation, brightness };
+//         RgbColor_t rgb = HsvToRgb(hsv);
+// #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+//         led_strip_set_pixel(mStrip, 0, rgb.r, rgb.g, rgb.b);
+//         led_strip_refresh(mStrip);
+// #else
+//         mStrip->set_pixel(mStrip, 0, rgb.r, rgb.g, rgb.b);
+//         mStrip->refresh(mStrip, 100);
+// #endif
+//     }
+// #else
+//     ESP_LOGI(TAG, "DoSet to GPIO number %d", mGPIONum);
+    // if (mGPIONum < GPIO_NUM_MAX)
+    // {
+    //     ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, brightness);
+    //     ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
+    // }
+
+
+
 #endif // CONFIG_LED_TYPE_RMT
 }
